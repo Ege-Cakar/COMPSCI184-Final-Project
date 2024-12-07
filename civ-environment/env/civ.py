@@ -101,19 +101,19 @@ class Civilization(AECEnv):
         self.projects = {}
         self._initialize_projects()
         # Costs for buying units
-        self.WARRIOR_COST = 40
-        self.SETTLER_COST = 60
+        self.WARRIOR_COST = 100
+        self.SETTLER_COST = 200
         # Initialize constants for the reward function
         self.k1 = 1.0  # Progress of projects
         self.k2 = 2.0  # Completion of projects
-        self.k3 = 0.1  # Tiles explored
+        self.k3 = 0.3  # Tiles explored
         self.k4 = 5.0  # Cities captured
         self.k5 = 5.0  # Cities lost
         self.k6 = 1.0  # Units eliminated
         self.k7 = 1.0  # Units lost
         self.k8 = 0.5  # Change in GDP
         self.k9 = 0.5  # Change in Energy output
-        self.k10 = 0.35 # Resources gained
+        self.k10 = 0.4 # Resources gained
         self.gamma = 0.3  # Environmental impact penalty
         # Tracking variables
         self.previous_states = {agent: None for agent in self.agents}
@@ -173,9 +173,9 @@ class Civilization(AECEnv):
         
     def reward(self, agent, previous_state, current_state): 
         if self._states_are_equal(previous_state, current_state):
-            #print(f"Agent {agent} performed an action that did not change the state. Penalized with -10.")
+            #print(f"Agent {agent} performed an action that did not change the state. Penalized with -50.")
             #Spams too much. Comment it out for now.
-            return -10
+            return -100
         # Calculate differences between current and previous states
         P_progress = current_state['projects_in_progress'] - previous_state['projects_in_progress']
         P_completion = current_state['completed_projects'] - previous_state['completed_projects']
@@ -204,6 +204,7 @@ class Civilization(AECEnv):
                   self.k9 * delta_Energy +
                   self.k10 * C_resources -
                   self.gamma * E_impact)
+        print(self.gamma * E_impact)
         return reward
     
     def _states_are_equal(self, state1, state2):
@@ -773,8 +774,8 @@ class Civilization(AECEnv):
         # TODO: Implement more complex world generation and spawn point selection?
     
     def _initialize_projects(self):
-        self.projects[0] = {'name': 'Make Warrior', 'duration': 3, 'type': 'unit', 'unit_type': 'warrior'}
-        self.projects[1] = {'name': 'Make Settler', 'duration': 5, 'type': 'unit', 'unit_type': 'settler'}
+        self.projects[0] = {'name': 'Make Warrior', 'duration': 5, 'type': 'unit', 'unit_type': 'warrior'}
+        self.projects[1] = {'name': 'Make Settler', 'duration': 10, 'type': 'unit', 'unit_type': 'settler'}
         num_remaining_projects = self.max_projects - 2
         num_friendly_projects = num_remaining_projects // 2
         num_destructive_projects = num_remaining_projects - num_friendly_projects
@@ -783,7 +784,7 @@ class Civilization(AECEnv):
             project_id = i + 2
             self.projects[project_id] = {
                 'name': f'Eco Project {i+1}',
-                'duration': 5,
+                'duration': 25,
                 'type': 'friendly',
                 'gdp_boost': 12,
                 'penalty': 1
@@ -793,7 +794,7 @@ class Civilization(AECEnv):
             project_id = i + 2 + num_friendly_projects
             self.projects[project_id] = {
                 'name': f'Destructive Project {i+1}',
-                'duration': 3,
+                'duration': 15,
                 'type': 'destructive',
                 'gdp_boost': 20,
                 'penalty': 5
