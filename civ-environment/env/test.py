@@ -36,7 +36,7 @@ def main():
     # Define hyperparameters
     hidden_size = 1024
     lambdaa = 0.01
-    n_iters = 10
+    n_iters = 30
     n_fit_trajectories = 100
     n_sample_trajectories = 100
     max_steps = 50 #TO CHANGE

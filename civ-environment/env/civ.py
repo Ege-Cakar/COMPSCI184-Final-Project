@@ -192,8 +192,7 @@ class Civilization(AECEnv):
         self.resources_gained[agent] = 0
 
         sys.stdout.flush()
-        if action['action_type'] == self.NO_OP:
-            reward -= 0.1  # Adjust penalty magnitude as needed
+
         # Compute the reward
         reward = (self.k1 * P_progress + self.k2 * P_completion +
                   self.k3 * C_tiles +
@@ -203,7 +202,8 @@ class Civilization(AECEnv):
                   self.k9 * delta_Energy +
                   self.k10 * C_resources -
                   self.gamma * E_impact)
-        
+        if action['action_type'] == self.NO_OP:
+            reward -= 0.1  # Adjust penalty magnitude as needed        
         return reward
     
     
