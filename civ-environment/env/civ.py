@@ -104,16 +104,16 @@ class Civilization(AECEnv):
         self.WARRIOR_COST = 40
         self.SETTLER_COST = 60
         # Initialize constants for the reward function
-        self.k1 = 1.0 # Progress of projects
-        self.k2 = 2.0  # Completion of projects
-        self.k3 = 0.1  # Tiles explored
-        self.k4 = 5.0  # Cities captured
-        self.k5 = 0.1  # Cities lost
-        self.k6 = 1.0  # Units eliminated
-        self.k7 = 0  # Units lost
-        self.k8 = 0.5  # Change in GDP
-        self.k9 = 0.5  # Change in Energy output
-        self.k10 = 0.1 # Resources gained
+        self.k1 = 2.0 # Progress of projects
+        self.k2 = 4.0  # Completion of projects
+        self.k3 = 0.5  # Tiles explored
+        self.k4 = 10.0  # Cities captured
+        self.k5 = 3  # Cities lost
+        self.k6 = 4.0  # Units eliminated
+        self.k7 = 0.4  # Units lost
+        self.k8 = 1  # Change in GDP
+        self.k9 = 1  # Change in Energy output
+        self.k10 = 3 # Resources gained
         self.gamma = 0  # Environmental impact penalty
         # Tracking variables
         self.previous_states = {agent: None for agent in self.agents}
@@ -157,11 +157,12 @@ class Civilization(AECEnv):
         }) for agent in self.agents}
         self.action_spaces = {agent : spaces.Dict({
             "action_type": spaces.Discrete(7),  # 0: MOVE_UNIT, 1: ATTACK_UNIT, 2: FOUND_CITY, 3: ASSIGN_PROJECT, 4: NO_OP, 5: BUY_WARRIOR, 6: BUY_SETTLER
-            "unit_id": spaces.Discrete(self.max_units_per_agent),  # For MOVE_UNIT, ATTACK_UNIT, FOUND_CITY
+            "unit_id": spaces.Discrete(self.max_units_per_agent + 1),  # For MOVE_UNIT, ATTACK_UNIT, FOUND_CITY
             "direction": spaces.Discrete(5),    # For MOVE_UNIT, ATTACK_UNIT
-            "city_id": spaces.Discrete(self.max_cities),           # For ASSIGN_PROJECT
-            "project_id": spaces.Discrete(self.max_projects)       # For ASSIGN_PROJECT
+            "city_id": spaces.Discrete(self.max_cities + 1),           # For ASSIGN_PROJECT
+            "project_id": spaces.Discrete(self.max_projects + 1)       # For ASSIGN_PROJECT
         }) for agent in self.agents}
+        # The +1s are all no NO_OP actions
     
     def observation_space(self, agent):
         return self.observation_spaces[agent]
@@ -460,60 +461,188 @@ class Civilization(AECEnv):
         """
         Generate a mask for valid actions for the given agent.
 
+        The mask will contain:
+            - action_type: Which action types are possible.
+            - unit_id: Which units can be selected given the chosen action_type.
+            - direction: Which directions are valid for the chosen unit/action (MOVE or ATTACK).
+            - city_id: Which cities can be selected for ASSIGN_PROJECT or BUY_WARRIOR/BUY_SETTLER.
+            - project_id: Which projects can be assigned.
+
         Returns:
-            dict: A dictionary where each key corresponds to an action component
-                (e.g., action_type, unit_id, direction, city_id, project_id),
-                and the value is a binary mask indicating valid actions.
+            dict: A dictionary of masks for each action component.
         """
-        n_tiles = self.map_size[0]*self.map_size[1]
-        # Initialize masks for all action components
+        # Initialize masks
         action_mask = {
-            "action_type": np.ones(7, dtype=np.int32),  # 7 action types
-            "unit_id": np.ones(n_tiles, dtype=np.int32),
-            "direction": np.ones(5, dtype=np.int32),  # 4 possible directions (up, right, down, left)
-            "city_id": np.ones(n_tiles, dtype=np.int32),
-            "project_id": np.ones(n_tiles, dtype=np.int32),
+            "action_type": np.zeros(7, dtype=np.int32),
+            "unit_id": np.zeros(self.max_units_per_agent+1, dtype=np.int32),
+            "direction": np.zeros(5, dtype=np.int32),
+            "city_id": np.zeros(self.max_cities+1, dtype=np.int32),
+            "project_id": np.zeros(self.max_projects+1, dtype=np.int32),
         }
 
-        # Mask action_type based on what the agent can do
-        if self.units[agent]:  # Agent has units
+        # If this agent is done, only NO_OP is valid
+        if agent not in self.agents:
+            action_mask["action_type"][self.NO_OP] = 1
+            return action_mask
+
+        # Always allow NO_OP
+        action_mask["action_type"][self.NO_OP] = 1
+
+        # Gather basic info
+        units = self.units[agent]
+        cities = self.cities[agent]
+        money = self.money[agent]
+
+        # --- ACTION_TYPE feasibility checks ---
+
+        # MOVE_UNIT, ATTACK_UNIT, FOUND_CITY require the agent to have units
+        if len(units) > 0:
+            # At least one unit exists
             action_mask["action_type"][self.MOVE_UNIT] = 1
             action_mask["action_type"][self.ATTACK_UNIT] = 1
             action_mask["action_type"][self.FOUND_CITY] = 1
-            action_mask["action_type"][self.NO_OP] = 1
 
-        if self.cities[agent]:  # Agent has cities
+        # ASSIGN_PROJECT, BUY_WARRIOR, BUY_SETTLER require the agent to have cities
+        if len(cities) > 0:
             action_mask["action_type"][self.ASSIGN_PROJECT] = 1
-            action_mask["action_type"][self.BUY_WARRIOR] = 1
-            action_mask["action_type"][self.BUY_SETTLER] = 1
+            # Check if the agent can afford buying units
+            if money >= self.WARRIOR_COST:
+                action_mask["action_type"][self.BUY_WARRIOR] = 1
+            if money >= self.SETTLER_COST:
+                action_mask["action_type"][self.BUY_SETTLER] = 1
 
-        # NO_OP is always valid
-        action_mask["action_type"][self.NO_OP] = 1
+        # --- UNIT_ID & DIRECTION feasibility ---
+        # For MOVE_UNIT, ATTACK_UNIT, and FOUND_CITY, we must have a valid unit
+        # Also, for ATTACK_UNIT and FOUND_CITY, the unit type matters
+        # For directions, we must check valid moves/attacks.
 
-        # Mask unit_id based on the agent's units
-        for idx, unit in enumerate(self.units[agent]):
-            if idx < self.max_units_per_agent:
-                action_mask["unit_id"][idx] = 1  # Mark this unit as valid
+        # Directions: 0=up,1=right,2=down,3=left,4= no direction (for NO_OP or other cases)
+        # Set direction[4] = 1 for fallback (e.g., NO_OP or invalid)
+        action_mask["direction"][4] = 1
 
-        # Mask direction based on unit movement or attack
-        if self.units[agent]:
-            for direction in range(4):  # 0: up, 1: right, 2: down, 3: left
-                for unit in self.units[agent]:
-                    new_pos = unit._calculate_new_position(unit.x, unit.y, direction)
-                    if new_pos:  # Valid movement
-                        action_mask["direction"][direction] = 1
-                        break  # At least one unit can move in this direction
-            action_mask["direction"][4]==1
+        # For each unit, determine if it can be used for each action:
+        for u_idx, unit in enumerate(units):
+            if u_idx >= self.max_units_per_agent:
+                break
 
-        # Mask city_id based on the agent's cities
-        for idx, city in enumerate(self.cities[agent]):
-            if idx < self.max_cities:
-                action_mask["city_id"][idx] = 1  # Mark this city as valid
+            # Units are always selectable if they exist
+            # But whether they can be used depends on action_type chosen
+            # We only mark them now; final selection depends on the chosen action_type
+            action_mask["unit_id"][u_idx] = 1
 
-        # Mask project_id based on the agent's ability to start projects
-        for project_id in self.projects:
-            if project_id < self.max_projects:
-                action_mask["project_id"][project_id] = 1
+        # For MOVE_UNIT and ATTACK_UNIT: directions depend on the environment
+        # Check each unit and see if it can move or attack in each direction.
+        # If no unit can move/attack in a particular direction, that direction remains 0 for that action.
+        # We'll be conservative here and just determine if ANY unit can do so.
+
+        # If MOVE_UNIT is chosen:
+        # A unit can move in a direction if:
+        #   - The tile in that direction is inside the map and empty.
+        if action_mask["action_type"][self.MOVE_UNIT] == 1:
+            valid_move_directions = np.zeros(4, dtype=np.int32)
+            for u_idx, unit in enumerate(units):
+                for d in range(4):
+                    new_pos = unit._calculate_new_position(unit.x, unit.y, d)
+                    if new_pos is not None:
+                        # If at least one unit can move in direction d, that direction is valid
+                        valid_move_directions[d] = 1
+            # Update direction mask for MOVE_UNIT
+            # Note: We do not disable directions right now as masks will be applied at action time,
+            # but we ensure only directions workable by at least one unit are marked.
+            action_mask["direction"][:4] = valid_move_directions
+
+        # If ATTACK_UNIT is chosen:
+        # A warrior can attack if there's an enemy unit or city in the given direction.
+        # Check for at least one warrior that can attack in each direction.
+        if action_mask["action_type"][self.ATTACK_UNIT] == 1:
+            valid_attack_directions = np.zeros(4, dtype=np.int32)
+            for u_idx, unit in enumerate(units):
+                if unit.type != 'warrior':
+                    continue
+                for d in range(4):
+                    target_owner, target = unit._check_enemy_units_and_cities(unit.x, unit.y, d, agent, self)
+                    if target is not None:
+                        valid_attack_directions[d] = 1
+            # Update direction mask for ATTACK_UNIT
+            # Directions where no attack is possible remain 0
+            action_mask["direction"][:4] = action_mask["direction"][:4] & valid_attack_directions
+
+        # If FOUND_CITY is chosen:
+        # A settler can found a city if it's on an empty tile and it's actually a settler.
+        # Check each settler if it can found a city at its current tile.
+        # Founding a city does not require movement, so direction doesn't matter (often set direction=4)
+        if action_mask["action_type"][self.FOUND_CITY] == 1:
+            # If no settler is present, can't found city
+            has_settler = False
+            for u_idx, unit in enumerate(units):
+                if unit.type == 'settler':
+                    # For simplicity, assume a settler can always found city at its current location
+                    # If code requires more checks, add them here
+                    has_settler = True
+                    break
+            if not has_settler:
+                action_mask["action_type"][self.FOUND_CITY] = 0
+
+        # --- CITY_ID & PROJECT_ID feasibility ---
+        # For ASSIGN_PROJECT: we need a city that doesn't have a current project
+        # For BUY_WARRIOR/BUY_SETTLER: we need a city that can place the purchased unit
+        # Check city conditions
+        for c_idx, city in enumerate(cities):
+            if c_idx >= self.max_cities:
+                break
+            # City is selectable if:
+            #   For ASSIGN_PROJECT: city.current_project is None
+            #   For BUY_WARRIOR/BUY_SETTLER: money >= cost and can find adjacent tile
+            # Mark city only if relevant action is possible
+            city_selectable = False
+
+            # ASSIGN_PROJECT:
+            if action_mask["action_type"][self.ASSIGN_PROJECT] == 1:
+                # City must not have a project underway
+                if city.current_project is None:
+                    # city is selectable for ASSIGN_PROJECT
+                    city_selectable = True
+
+            # BUY_WARRIOR:
+            if action_mask["action_type"][self.BUY_WARRIOR] == 1 and money >= self.WARRIOR_COST:
+                # Check if we can place a warrior near the city
+                if self._place_unit_near_city(agent, 'warrior', city.x, city.y):
+                    city_selectable = True
+                    # Undo the actual placement done by the function. To avoid messing state:
+                    # We'll monkey-patch by re-checking emptiness. 
+                    # Better: Just replicate logic: If there's at least one empty adjacent tile, city_selectable = True.
+                    # We'll write a custom check:
+                    placed = False
+                    adj_tiles = self._get_adjacent_tiles(city.x, city.y)
+                    for tx, ty in adj_tiles:
+                        if self._is_tile_empty(tx, ty):
+                            placed = True
+                            break
+                    city_selectable = city_selectable and placed
+
+            # BUY_SETTLER:
+            if action_mask["action_type"][self.BUY_SETTLER] == 1 and money >= self.SETTLER_COST:
+                # Check if we can place a settler near the city
+                adj_tiles = self._get_adjacent_tiles(city.x, city.y)
+                placed = False
+                for tx, ty in adj_tiles:
+                    if self._is_tile_empty(tx, ty):
+                        placed = True
+                        break
+                if placed:
+                    city_selectable = True
+
+            if city_selectable:
+                action_mask["city_id"][c_idx] = 1
+
+        # For ASSIGN_PROJECT: which projects can the city pick?
+        # If ASSIGN_PROJECT is possible and at least one city is available, all valid projects that aren't duplicates can be chosen
+        if action_mask["action_type"][self.ASSIGN_PROJECT] == 1 and np.any(action_mask["city_id"] == 1):
+            # All projects defined in self.projects are potential, but we might filter if needed.
+            # For now, assume all projects are available.
+            for pid in self.projects:
+                # If city can choose a project, project_id is valid
+                action_mask["project_id"][pid] = 1
 
         return action_mask
 
