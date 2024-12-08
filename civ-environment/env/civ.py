@@ -7,7 +7,7 @@ from pettingzoo.utils.env import AECEnv
 import pygame
 from pygame.locals import QUIT
 import math
-
+import sys 
 # TODO: Make sure invalid actions are handled gracefully
 # Example action: 
 # action = {
@@ -101,20 +101,20 @@ class Civilization(AECEnv):
         self.projects = {}
         self._initialize_projects()
         # Costs for buying units
-        self.WARRIOR_COST = 100
-        self.SETTLER_COST = 200
+        self.WARRIOR_COST = 40
+        self.SETTLER_COST = 60
         # Initialize constants for the reward function
-        self.k1 = 1.0  # Progress of projects
+        self.k1 = 1.0 # Progress of projects
         self.k2 = 2.0  # Completion of projects
-        self.k3 = 0.3  # Tiles explored
+        self.k3 = 0.1  # Tiles explored
         self.k4 = 5.0  # Cities captured
-        self.k5 = 5.0  # Cities lost
+        self.k5 = 0.1  # Cities lost
         self.k6 = 1.0  # Units eliminated
-        self.k7 = 1.0  # Units lost
+        self.k7 = 0  # Units lost
         self.k8 = 0.5  # Change in GDP
         self.k9 = 0.5  # Change in Energy output
-        self.k10 = 0.4 # Resources gained
-        self.gamma = 0.3  # Environmental impact penalty
+        self.k10 = 0.1 # Resources gained
+        self.gamma = 0  # Environmental impact penalty
         # Tracking variables
         self.previous_states = {agent: None for agent in self.agents}
         self.units_lost = {agent: 0 for agent in self.agents}
@@ -158,7 +158,7 @@ class Civilization(AECEnv):
         self.action_spaces = {agent : spaces.Dict({
             "action_type": spaces.Discrete(7),  # 0: MOVE_UNIT, 1: ATTACK_UNIT, 2: FOUND_CITY, 3: ASSIGN_PROJECT, 4: NO_OP, 5: BUY_WARRIOR, 6: BUY_SETTLER
             "unit_id": spaces.Discrete(self.max_units_per_agent),  # For MOVE_UNIT, ATTACK_UNIT, FOUND_CITY
-            "direction": spaces.Discrete(4),    # For MOVE_UNIT, ATTACK_UNIT
+            "direction": spaces.Discrete(5),    # For MOVE_UNIT, ATTACK_UNIT
             "city_id": spaces.Discrete(self.max_cities),           # For ASSIGN_PROJECT
             "project_id": spaces.Discrete(self.max_projects)       # For ASSIGN_PROJECT
         }) for agent in self.agents}
@@ -171,11 +171,7 @@ class Civilization(AECEnv):
         return self.action_spaces[agent]
 
         
-    def reward(self, agent, previous_state, current_state): 
-        if self._states_are_equal(previous_state, current_state):
-            #print(f"Agent {agent} performed an action that did not change the state. Penalized with -50.")
-            #Spams too much. Comment it out for now.
-            return -100
+    def reward(self, agent, previous_state, current_state, action): 
         # Calculate differences between current and previous states
         P_progress = current_state['projects_in_progress'] - previous_state['projects_in_progress']
         P_completion = current_state['completed_projects'] - previous_state['completed_projects']
@@ -195,6 +191,9 @@ class Civilization(AECEnv):
         self.cities_lost[agent] = 0
         self.resources_gained[agent] = 0
 
+        sys.stdout.flush()
+        if action['action_type'] == self.NO_OP:
+            reward -= 0.1  # Adjust penalty magnitude as needed
         # Compute the reward
         reward = (self.k1 * P_progress + self.k2 * P_completion +
                   self.k3 * C_tiles +
@@ -204,8 +203,10 @@ class Civilization(AECEnv):
                   self.k9 * delta_Energy +
                   self.k10 * C_resources -
                   self.gamma * E_impact)
-        print(self.gamma * E_impact)
+        
         return reward
+    
+    
     
     def _states_are_equal(self, state1, state2):
         """
@@ -307,7 +308,7 @@ class Civilization(AECEnv):
 
         # Update rewards, dones, infos
         current_state = self._get_state_snapshot(agent)
-        reward = self.reward(agent, prev_state, current_state)
+        reward = self.reward(agent, prev_state, current_state, action)
         self.rewards[agent] = reward
 
         # Check for termination
@@ -397,7 +398,7 @@ class Civilization(AECEnv):
                     self.units[agent].remove(unit)
                     # Update the map, visibility, and any other game state
                     self._update_map_with_new_city(agent, new_city)
-                    print(f"Agent {agent} founded a city at ({unit.x}, {unit.y})!")
+                    #print(f"Agent {agent} founded a city at ({unit.x}, {unit.y})!")
                 else:
                     pass
 
@@ -454,6 +455,68 @@ class Civilization(AECEnv):
             else:
                 # Handle insufficient funds
                 pass
+    
+    def get_action_mask(self, agent):
+        """
+        Generate a mask for valid actions for the given agent.
+
+        Returns:
+            dict: A dictionary where each key corresponds to an action component
+                (e.g., action_type, unit_id, direction, city_id, project_id),
+                and the value is a binary mask indicating valid actions.
+        """
+        n_tiles = self.map_size[0]*self.map_size[1]
+        # Initialize masks for all action components
+        action_mask = {
+            "action_type": np.ones(7, dtype=np.int32),  # 7 action types
+            "unit_id": np.ones(n_tiles, dtype=np.int32),
+            "direction": np.ones(5, dtype=np.int32),  # 4 possible directions (up, right, down, left)
+            "city_id": np.ones(n_tiles, dtype=np.int32),
+            "project_id": np.ones(n_tiles, dtype=np.int32),
+        }
+
+        # Mask action_type based on what the agent can do
+        if self.units[agent]:  # Agent has units
+            action_mask["action_type"][self.MOVE_UNIT] = 1
+            action_mask["action_type"][self.ATTACK_UNIT] = 1
+            action_mask["action_type"][self.FOUND_CITY] = 1
+            action_mask["action_type"][self.NO_OP] = 1
+
+        if self.cities[agent]:  # Agent has cities
+            action_mask["action_type"][self.ASSIGN_PROJECT] = 1
+            action_mask["action_type"][self.BUY_WARRIOR] = 1
+            action_mask["action_type"][self.BUY_SETTLER] = 1
+
+        # NO_OP is always valid
+        action_mask["action_type"][self.NO_OP] = 1
+
+        # Mask unit_id based on the agent's units
+        for idx, unit in enumerate(self.units[agent]):
+            if idx < self.max_units_per_agent:
+                action_mask["unit_id"][idx] = 1  # Mark this unit as valid
+
+        # Mask direction based on unit movement or attack
+        if self.units[agent]:
+            for direction in range(4):  # 0: up, 1: right, 2: down, 3: left
+                for unit in self.units[agent]:
+                    new_pos = unit._calculate_new_position(unit.x, unit.y, direction)
+                    if new_pos:  # Valid movement
+                        action_mask["direction"][direction] = 1
+                        break  # At least one unit can move in this direction
+            action_mask["direction"][4]==1
+
+        # Mask city_id based on the agent's cities
+        for idx, city in enumerate(self.cities[agent]):
+            if idx < self.max_cities:
+                action_mask["city_id"][idx] = 1  # Mark this city as valid
+
+        # Mask project_id based on the agent's ability to start projects
+        for project_id in self.projects:
+            if project_id < self.max_projects:
+                action_mask["project_id"][project_id] = 1
+
+        return action_mask
+
 
     class Unit:
         def __init__(self, x, y, unit_type, owner, env):
@@ -483,22 +546,22 @@ class Civilization(AECEnv):
 
         def attack(self, direction):
             if self.type != 'warrior':
-                print(f"Unit {self} is not a warrior and cannot attack.")
+                #print(f"Unit {self} is not a warrior and cannot attack.")
                 return
 
             target_agent, target = self._check_enemy_units_and_cities(self.x, self.y, direction, self.owner, self.env)
 
             if target is not None:
-                print(f"{self.owner}'s warrior at ({self.x}, {self.y}) attacks {target_agent}'s {target.type} at ({target.x}, {target.y}).")
+                #print(f"{self.owner}'s warrior at ({self.x}, {self.y}) attacks {target_agent}'s {target.type} at ({target.x}, {target.y}).")
                 # Inflict damage
                 target.health -= 35
-                print(f"Target's health is now {target.health}.")
+                #print(f"Target's health is now {target.health}.")
                 self.env.last_attacker = self.owner
                 self.env.last_target_destroyed = False
 
                 # Check if the target is destroyed
                 if target.health <= 0:
-                    print(f"Target {target.type} at ({target.x}, {target.y}) has been destroyed.")
+                    #print(f"Target {target.type} at ({target.x}, {target.y}) has been destroyed.")
                     self.env.last_target_destroyed = True
                     self.env._remove_unit_or_city(target)
                     # Update tracking variables
@@ -509,8 +572,8 @@ class Civilization(AECEnv):
                         self.env.cities_captured[self.owner] += 1
                         self.env.cities_lost[target.owner] += 1
             else:
-                print(f"No enemy to attack in direction {direction} from ({self.x}, {self.y}).")
-
+                #print(f"No enemy to attack in direction {direction} from ({self.x}, {self.y}).")
+                pass
         
         # TODO: Maybe add defending? 
         
@@ -589,7 +652,7 @@ class Civilization(AECEnv):
                 delta_y = 1
             elif direction == 3:
                 delta_x = -1
-            else:
+            elif direction ==4:
                 return None, None
 
             new_x = x + delta_x
@@ -774,8 +837,8 @@ class Civilization(AECEnv):
         # TODO: Implement more complex world generation and spawn point selection?
     
     def _initialize_projects(self):
-        self.projects[0] = {'name': 'Make Warrior', 'duration': 5, 'type': 'unit', 'unit_type': 'warrior'}
-        self.projects[1] = {'name': 'Make Settler', 'duration': 10, 'type': 'unit', 'unit_type': 'settler'}
+        self.projects[0] = {'name': 'Make Warrior', 'duration': 3, 'type': 'unit', 'unit_type': 'warrior'}
+        self.projects[1] = {'name': 'Make Settler', 'duration': 5, 'type': 'unit', 'unit_type': 'settler'}
         num_remaining_projects = self.max_projects - 2
         num_friendly_projects = num_remaining_projects // 2
         num_destructive_projects = num_remaining_projects - num_friendly_projects
@@ -784,7 +847,7 @@ class Civilization(AECEnv):
             project_id = i + 2
             self.projects[project_id] = {
                 'name': f'Eco Project {i+1}',
-                'duration': 25,
+                'duration': 5,
                 'type': 'friendly',
                 'gdp_boost': 12,
                 'penalty': 1
@@ -794,7 +857,7 @@ class Civilization(AECEnv):
             project_id = i + 2 + num_friendly_projects
             self.projects[project_id] = {
                 'name': f'Destructive Project {i+1}',
-                'duration': 15,
+                'duration': 3,
                 'type': 'destructive',
                 'gdp_boost': 20,
                 'penalty': 5
@@ -895,8 +958,9 @@ class Civilization(AECEnv):
                     warrior_placed = True
                     break
             if not warrior_placed:
+                pass
                 # Handle the case where no adjacent empty tile is found
-                print(f"Warning: Could not place warrior for agent {agent_idx} adjacent to settler at ({x}, {y}).")
+                #print(f"Warning: Could not place warrior for agent {agent_idx} adjacent to settler at ({x}, {y}).")
                # Optionally, expand search radius
 
     

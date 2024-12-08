@@ -6,7 +6,8 @@ from civ import Civilization
 from pettingzoo.utils import wrappers
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
-
+import sys 
+import matplotlib.pyplot as plt
 # Import the PPO class and the Actor/Critic RNNs from your implementation
 from train import ProximalPolicyOptimization, ActorRNN, CriticRNN
 
@@ -25,7 +26,9 @@ def preprocess_observation(obs):
 def main():
     # Initialize the environment
     map_size = (15, 30)
+
     num_agents = 4
+    sys.stdout.flush()
     env = Civilization(map_size, num_agents)
     env = wrappers.CaptureStdoutWrapper(env)
     env = wrappers.OrderEnforcingWrapper(env)
@@ -33,10 +36,10 @@ def main():
     # Define hyperparameters
     hidden_size = 1024
     lambdaa = 0.01
-    n_iters = 1000
+    n_iters = 10
     n_fit_trajectories = 100
     n_sample_trajectories = 100
-    max_steps = 30 #TO CHANGE
+    max_steps = 50 #TO CHANGE
     num_epochs = 100
 
     # Initialize policies and optimizers
@@ -44,6 +47,9 @@ def main():
     critic_policies = {}
     theta_inits = {}
     env.reset()
+    
+    n_tiles = map_size[0]*map_size[1]
+
     for agent in env.agents:
         # Get observation and action spaces
         obs_space = env.observation_space(agent)
@@ -63,7 +69,7 @@ def main():
         action_size = act_space['action_type'].n
 
         # Initialize actor and critic networks
-        actor_policies[agent] = ActorRNN(input_size, hidden_size, action_size, env.max_cities, env.max_projects)
+        actor_policies[agent] = ActorRNN(input_size, hidden_size, n_tiles)
         critic_policies[agent] = CriticRNN(input_size_critic, hidden_size)
 
         # Initialize policy parameters
@@ -81,9 +87,22 @@ def main():
         n_sample_trajectories=n_sample_trajectories,
         max_steps = max_steps
     )
+    def plot_rewards(reward_history, num_agents):
+        plt.figure(figsize=(10, 6))
+        for agent_idx in range(num_agents):
+            plt.plot(reward_history[:, agent_idx], label=f"Agent {agent_idx}")
+        plt.title("Total Rewards Across Training Iterations")
+        plt.xlabel("Iteration")
+        plt.ylabel("Total Reward")
+        plt.legend()
+        plt.grid()
+        plt.show()
 
     # Train the policies
-    ppo.train(eval_interval=1, eval_steps=20)
+    ppo.train(eval_interval=30, eval_steps=100)
+    print("trained")
+    plot_rewards(ppo.reward_history, len(ppo.env.agents))
+    sys.stdout.flush()
 
 if __name__ == "__main__":
     main()

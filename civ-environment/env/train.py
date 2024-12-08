@@ -17,7 +17,7 @@ from typing import TypeVar, Callable
 import jax.numpy as jnp
 import torch.nn.functional as F
 from tqdm import tqdm
-
+import sys
 
 from civ import Civilization
 
@@ -49,8 +49,9 @@ class ProximalPolicyOptimization:
         self.n_fit_trajectories = n_fit_trajectories
         self.n_sample_trajectories = n_sample_trajectories
         self.max_steps = max_steps
+        self.reward_history = np.zeros((self.n_iters, len(self.env.agents)))
 
-    def train(self, eval_interval=10, eval_steps=20):
+    def train(self, eval_interval, eval_steps):
         """
         Proximal Policy Optimization (PPO) implementation.
 
@@ -79,24 +80,30 @@ class ProximalPolicyOptimization:
         #This code is taken from class
         theta_list = self.theta_inits
 
-        for iter in tqdm(range(self.n_iters), desc="Training Iterations"):
+        for iter in range(self.n_iters):
+            print("Training iteration:" ,iter)
+            sys.stdout.flush()
             n_agents = len(self.actor_policies)
             self.env.reset()   
             
             trajectories = self.initialize_starting_trajectories(self.env, self.actor_policies, n_agents)
 
+
             for step in range(self.max_steps):
-                for agent_idx in range(n_agents):
-                    #print("On agent", agent_idx)
-                    agent = self.env.agent_selection                
+
+                for agent in self.env.agents:
+
+                    sys.stdout.flush()               
                     trajectories_next_step = self.sample_trajectories( #for a single agent
                         self.env,
-                        self.actor_policies[agent_idx],
-                        self.critic_policies[agent_idx],
-                        trajectories[agent_idx],
-                        n_agents
+                        self.actor_policies[agent],
+                        self.critic_policies[agent],
+                        trajectories[agent],
+                        n_agents,
+                        iter,
+                        agent
                     )
-                trajectories[agent_idx].extend(trajectories_next_step)
+                trajectories[agent].extend(trajectories_next_step)
 
 
             # Process trajectories
@@ -129,30 +136,50 @@ class ProximalPolicyOptimization:
             actions = []
 
             for agent, actor_policy in self.actor_policies.items():
+                action_mask = self.env.get_action_mask(agent)
+
                 agent_obs = obs[agent]  # Assuming `obs` is indexed by agent
                 agent_obs = ActorRNN.process_observation(agent_obs)
                 action_prob, _ = actor_policy(agent_obs, None)  # Pass reshaped observation to RNN
 
+                masked_action_prob = {}
+                for key in action_prob:
+                    # Mask the action probabilities
+                    mask = torch.tensor(action_mask[key], dtype=torch.float32)
+                    masked_action_prob[key] = action_prob[key] * mask
+                    # Normalize probabilities after masking
+                    masked_action_prob[key] = masked_action_prob[key] / masked_action_prob[key].sum()
+
                 # Sample actions and compute log probabilities
-                action_type_dist = Categorical(probs=action_prob['action_type'])
-                action_type = action_type_dist.sample().item()  # Sampled action
-                action_type_log_prob = action_type_dist.log_prob(torch.tensor(action_type))  # Log prob of sampled action
+                action_type_dist = Categorical(probs=masked_action_prob['action_type'])
+                action_type = action_type_dist.sample()
+                action_type_log_prob = action_type_dist.log_prob(action_type)
+                
+                if masked_action_prob['unit_id'].sum() > 0:
+                    unit_id_dist = Categorical(probs=masked_action_prob['unit_id'])
+                    unit_id = unit_id_dist.sample()
+                    unit_id_log_prob = unit_id_dist.log_prob(unit_id)
+                else:
+                    unit_id = torch.tensor(0, dtype=torch.long)  # Ensure it's a tensor
+                    unit_id_log_prob = torch.tensor(0.0)  # No meaningful log_prob; assign 0.0
 
-                unit_id_dist = Categorical(probs=action_prob['unit_id'])
-                unit_id = unit_id_dist.sample().item()
-                unit_id_log_prob = unit_id_dist.log_prob(torch.tensor(unit_id))
+                direction_dist = Categorical(probs=masked_action_prob['direction'])
+                direction = direction_dist.sample()
+                direction_log_prob = direction_dist.log_prob(direction)
+                
+                if masked_action_prob['city_id'].sum() > 0:
+                    city_id_dist = Categorical(probs=masked_action_prob['city_id'])
+                    city_id = city_id_dist.sample()
+                    city_id_log_prob = city_id_dist.log_prob(city_id)
+                else:
+                    # Assign city_id as a tensor with the default value
+                    city_id = torch.tensor(0, dtype=torch.long)  # Ensure it's a tensor
+                    city_id_log_prob = torch.tensor(0.0)  # No meaningful log_prob; assign 0.0
 
-                direction_dist = Categorical(probs=action_prob['direction'])
-                direction = direction_dist.sample().item()
-                direction_log_prob = direction_dist.log_prob(torch.tensor(direction))
 
-                city_id_dist = Categorical(probs=action_prob['city_id'])
-                city_id = city_id_dist.sample().item()
-                city_id_log_prob = city_id_dist.log_prob(torch.tensor(city_id))
-
-                project_id_dist = Categorical(probs=action_prob['project_id'])
-                project_id = project_id_dist.sample().item()
-                project_id_log_prob = project_id_dist.log_prob(torch.tensor(project_id))
+                project_id_dist = Categorical(probs=masked_action_prob['project_id'])
+                project_id = project_id_dist.sample()
+                project_id_log_prob = project_id_dist.log_prob(project_id)
 
                 # Store sampled actions
                 actions.append({
@@ -197,12 +224,14 @@ class ProximalPolicyOptimization:
             
             for optimizer in critic_optimizers.values():
                 optimizer.step()
+
             
-            if iter % 10 == 0:
-                print(f"Iteration {iter}: Actor Loss: {actor_loss.item()}, Critic Loss: {critic_loss.item()}")
             if (iter + 1) % eval_interval == 0:
+
                 self.env.reset()
-                for step in range(eval_steps):
+                step=0
+                while step < eval_steps:
+
                     for agent in self.env.agent_iter():
                         # sample action
                         # Get the current agent's observation
@@ -217,8 +246,94 @@ class ProximalPolicyOptimization:
                         chosen_action = ProximalPolicyOptimization.sample_action(action_probs)
                         self.env.step(chosen_action)
                         self.env.render()
+                        step+=1
+                        if step >= eval_steps:
+                            break
 
         return actor_loss.item(), critic_loss.item()
+
+    def sample_trajectories(self,env, actor_policy, critic_policy, past_trajectory, n_agents, iter, agent):
+        """
+        Based off of Yu et al.'s 2022 paper on Recurrent MAPPO.
+        Collect trajectories by interacting with the environment using recurrent actor and critic networks.
+
+        Args:
+            env: The environment to interact with.
+            actor_policies: A dictionary mapping each agent to its actor policy function.
+            critic_policies: A dictionary mapping each agent to its critic function.
+            past_trajectory: The past trajectory for this agent
+
+        Returns:
+            List of trajectories. Each trajectory is a list of tuples containing:
+                                                            
+            current local observation                 ->  agent's policy ->  probability distribution over actions     ->    action
+            actor hidden RNN from previous time step                         actor hidden RNN for current time step
+
+            current state                             ->  value function  -> value estimate for agent
+            critic hidden RNN from previous time step                        critic hidden RNN for current time step
+
+            accumulate trajectory into:
+            T = (state, obs, actor_hidden_state, critic_hidden_state, action, reward, next_state, next_observation).
+
+            state vs observation: what is observed by all agents vs what is observed by a single agent
+            actor hidden state vs critic hidden state: hidden state of an RNN, 
+                but one takes into account present state and encoded history in deciding an action
+                and the other takes into account present observation and encoded history in deciding a value estimate for 
+        """
+
+        #print("Running sample_trajectories")
+
+        trajectories_next_step=[] #ends up being a list of num_agents length, where each element is what gets added to existing trajectory     
+        
+        #past_trajectory's last elements include state, obs, hidden actor, hidden critic, action, reward next time step, state next time step, obs next time step
+        actor_hidden_state = past_trajectory[-6] 
+        critic_hidden_state = past_trajectory[-5]
+        state_t = past_trajectory[-2]
+        obs_t = past_trajectory[-1]
+
+
+        obs_t_tensor = ActorRNN.process_observation(obs_t)
+
+        # Actor policy: get action distribution and next hidden state
+        action_probs, next_actor_hidden = actor_policy(obs_t_tensor, actor_hidden_state)
+
+        action_mask = self.env.get_action_mask(agent)
+
+        # Apply action mask
+        masked_action_probs = {}
+        for key in action_probs:
+            mask = torch.tensor(action_mask[key], dtype=torch.float32)
+            masked_action_probs[key] = action_probs[key] * mask
+            masked_action_probs[key] = masked_action_probs[key] / masked_action_probs[key].sum(dim=-1, keepdim=True)
+
+        # Sample an action using masked probabilities
+        action = ProximalPolicyOptimization.sample_action(masked_action_probs)
+
+        # Step environment with all actions
+        env.step(action)  # Pass a dictionary with the agent and its action
+        reward_t = env.rewards[agent]
+        sys.stdout.flush()
+        self.reward_history[iter, agent] += reward_t
+
+        done = env.dones[agent]
+        next_obs = env.observe(agent)
+        next_state = ProximalPolicyOptimization.get_global_state(env, n_agents)
+
+        # Critic policy: get value and next critic hidden state
+        value, next_critic_hidden = critic_policy(state_t, critic_hidden_state)
+
+        trajectories_next_step=[
+            state_t,
+            obs_t, 
+            next_actor_hidden,
+            next_critic_hidden, 
+            action,
+            reward_t, 
+            next_state,
+            next_obs
+        ]
+
+        return trajectories_next_step
 
     def get_global_state(env, n_agents):
 
@@ -236,7 +351,6 @@ class ProximalPolicyOptimization:
         map_copy = env.map.copy()
         # do the masking
         critic_map = np.where(critic_visibility[:, :, np.newaxis].squeeze(2), map_copy, np.zeros_like(map_copy))
-        #print(critic_map.shape)
         # THIS MIGHT FUCK THINGS UP IN THE FUTURE. 
         critic_dict['map'] = critic_map
         critic_dict['units'] = None
@@ -304,92 +418,25 @@ class ProximalPolicyOptimization:
 
         return starting_trajectories
 
-    def sample_trajectories(self,env, actor_policy, critic_policy, past_trajectory, n_agents):
-        """
-        Based off of Yu et al.'s 2022 paper on Recurrent MAPPO.
-        Collect trajectories by interacting with the environment using recurrent actor and critic networks.
-
-        Args:
-            env: The environment to interact with.
-            actor_policies: A dictionary mapping each agent to its actor policy function.
-            critic_policies: A dictionary mapping each agent to its critic function.
-            past_trajectory: The past trajectory for this agent
-
-        Returns:
-            List of trajectories. Each trajectory is a list of tuples containing:
-                                                            
-            current local observation                 ->  agent's policy ->  probability distribution over actions     ->    action
-            actor hidden RNN from previous time step                         actor hidden RNN for current time step
-
-            current state                             ->  value function  -> value estimate for agent
-            critic hidden RNN from previous time step                        critic hidden RNN for current time step
-
-            accumulate trajectory into:
-            T = (state, obs, actor_hidden_state, critic_hidden_state, action, reward, next_state, next_observation).
-
-            state vs observation: what is observed by all agents vs what is observed by a single agent
-            actor hidden state vs critic hidden state: hidden state of an RNN, 
-                but one takes into account present state and encoded history in deciding an action
-                and the other takes into account present observation and encoded history in deciding a value estimate for 
-        """
-
-        #print("Running sample_trajectories")
-        agent = env.agent_selection                
-
-        trajectories_next_step=[] #ends up being a list of num_agents length, where each element is what gets added to existing trajectory     
-        
-        #past_trajectory's last elements include state, obs, hidden actor, hidden critic, action, reward next time step, state next time step, obs next time step
-        actor_hidden_state = past_trajectory[-6] 
-        critic_hidden_state = past_trajectory[-5]
-        state_t = past_trajectory[-2]
-        obs_t = past_trajectory[-1]
-
-
-        obs_t_tensor = ActorRNN.process_observation(obs_t)
-
-        # Actor policy: get action distribution and next hidden state
-        action_probs, next_actor_hidden = actor_policy(obs_t_tensor, actor_hidden_state)
-        action = ProximalPolicyOptimization.sample_action(action_probs)
-        env.step(action)
-
-        # Step environment with all actions
-        agent = env.agent_selection
-        env.step(action)  # Pass a dictionary with the agent and its action
-        reward_t = env.rewards[agent]
-
-        done = env.dones[agent]
-        next_obs = env.observe(agent)
-        next_state = ProximalPolicyOptimization.get_global_state(env, n_agents)
-
-        # Critic policy: get value and next critic hidden state
-        value, next_critic_hidden = critic_policy(state_t, critic_hidden_state)
-
-        trajectories_next_step=[
-            state_t,
-            obs_t, 
-            next_actor_hidden,
-            next_critic_hidden, 
-            action,
-            reward_t, 
-            next_state,
-            next_obs
-        ]
-
-        return trajectories_next_step
-
     def sample_action(action_probs):
-        # Sample action components
+
         action_type_dist = Categorical(probs=action_probs['action_type'])
         action_type = action_type_dist.sample().item()
-
-        unit_id_dist = Categorical(probs=action_probs['unit_id'])
-        unit_id = unit_id_dist.sample().item()
+        
+        if action_probs['unit_id'].sum()>0:
+            unit_id_dist = Categorical(probs=action_probs['unit_id'])
+            unit_id = unit_id_dist.sample().item()
+        else:
+            unit_id = 0
 
         direction_dist = Categorical(probs=action_probs['direction'])
         direction = direction_dist.sample().item()
 
-        city_id_dist = Categorical(probs=action_probs['city_id'])
-        city_id = city_id_dist.sample().item()
+        if action_probs['city_id'].sum()>0:
+            city_id_dist = Categorical(probs=action_probs['city_id'])
+            city_id = city_id_dist.sample().item()
+        else:
+            city_id = 0
 
         project_id_dist = Categorical(probs=action_probs['project_id'])
         project_id = project_id_dist.sample().item()
@@ -402,6 +449,8 @@ class ProximalPolicyOptimization:
             'project_id': project_id,
         }
         return action
+        
+
     def flatten_observation(self, observation):
         """
         Flattens a dictionary of observations into a single tensor.
@@ -444,15 +493,15 @@ class ProximalPolicyOptimization:
     
 
 class ActorRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, max_units_per_agent, max_cities, max_projects):
+    def __init__(self, input_size, hidden_size, n_tiles):
         super(ActorRNN, self).__init__()
         self.hidden_size = hidden_size
         self.rnn = nn.GRU(input_size, hidden_size, batch_first=True)
         self.fc_action_type = nn.Linear(hidden_size, 7)
-        self.fc_unit_id = nn.Linear(hidden_size, max_units_per_agent)
-        self.fc_direction = nn.Linear(hidden_size, 4)
-        self.fc_city_id = nn.Linear(hidden_size, max_cities)
-        self.fc_project_id = nn.Linear(hidden_size, max_projects)
+        self.fc_unit_id = nn.Linear(hidden_size, n_tiles)
+        self.fc_direction = nn.Linear(hidden_size, 5)
+        self.fc_city_id = nn.Linear(hidden_size, n_tiles)
+        self.fc_project_id = nn.Linear(hidden_size, n_tiles)
             
     def process_observation(obs):
         if isinstance(obs, dict):
