@@ -1,0 +1,10 @@
+wandb_version: 1
+
+K:
+  value: 5
+T:
+  value: 764
+batch_size:
+  value: 8
+lr:
+  value: 0.0551947271357087

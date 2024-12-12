@@ -1,0 +1,8 @@
+{"time":"2024-12-11T21:41:04.851518-05:00","level":"INFO","msg":"using version","core version":"0.19.0"}
+{"time":"2024-12-11T21:41:04.851563-05:00","level":"INFO","msg":"created symlink","path":"/Users/anne/Downloads/College/Year_2/CS_184/final_project/COMPSCI184-Final-Project/wandb/run-20241211_214104-rm9kxhlw/logs/debug-core.log"}
+{"time":"2024-12-11T21:41:04.963007-05:00","level":"INFO","msg":"created new stream","id":"rm9kxhlw"}
+{"time":"2024-12-11T21:41:04.963101-05:00","level":"INFO","msg":"stream: started","id":"rm9kxhlw"}
+{"time":"2024-12-11T21:41:04.963244-05:00","level":"INFO","msg":"handler: started","stream_id":"rm9kxhlw"}
+{"time":"2024-12-11T21:41:04.963295-05:00","level":"INFO","msg":"sender: started","stream_id":"rm9kxhlw"}
+{"time":"2024-12-11T21:41:04.963292-05:00","level":"INFO","msg":"writer: Do: started","stream_id":"rm9kxhlw"}
+{"time":"2024-12-11T21:41:05.303489-05:00","level":"INFO","msg":"Starting system monitor"}
