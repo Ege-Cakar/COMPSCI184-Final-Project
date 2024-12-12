@@ -38,10 +38,10 @@ def main():
     # Define hyperparameters
     T = 500 #number of steps in trajectory
     batch_size = 30  # Define your batch size-- changed from 5
-    K = 10 #number of minibatches to process
+    K = 15 #number of minibatches to process
     lr = 5*0.0001
     hidden_size = 1024
-    step_max = 100 #number of training iterations, has to be over 10 in order to save outputs
+    step_max = 10 #number of training iterations, has to be over 10 in order to save outputs
     # Initialize policies and optimizers
     actor_policies = {}
     critic_policies = {}
@@ -69,7 +69,7 @@ def main():
         actor_policies[agent] = ActorRNN(input_size, hidden_size, action_size, env.max_cities, env.max_projects, device)
     critic_policies = CriticRNN(input_size_critic, hidden_size, device)
     
-    sweep = True #TODO
+    sweep = False #TODO
     #hyperparameter sweep
     if sweep:
         wandb.login()
