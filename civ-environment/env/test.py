@@ -37,7 +37,7 @@ def main():
 
     # Define hyperparameters
     T = 500 #number of steps in trajectory
-    batch_size = 5  # Define your batch size
+    batch_size = 10  # Define your batch size-- changed from 5
     K = 10 #number of minibatches to process
     lr = 0.001
     hidden_size = 1024
@@ -78,7 +78,7 @@ def main():
                 env=env,
                 actor_policies=actor_policies,
                 critic_policies=critic_policies,
-                step_max = 2,
+                step_max = 50,
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
@@ -99,9 +99,9 @@ def main():
             "method": "bayes",
             "metric": {"goal": "maximize", "name": "score"},
             "parameters": {
-                "batch_size": {"values": [5, 10, 15, 20, 25, 30]},
-                "K": {"values": [5, 10, 15, 20, 25, 30]},
-                #"lr": {"distribution": "log_uniform", "min": -9.2, "max": -2.3}
+                #"batch_size": {"values": [5, 10, 15, 20, 25, 30]},
+                #"K": {"values": [5, 10, 15, 20, 25, 30]},
+                "lr": {"distribution": "log_uniform", "min": -9.2, "max": -2.3}
                 #"batch_size": {"min": 5, "max": 30},
                 #"K": {"min": 5, "max": 30},
                 #"lr": {"min": 0.00005, "max": 0.05}
@@ -111,7 +111,7 @@ def main():
         }
         
         sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep-final")
-        wandb.agent(sweep_id, function=sweep, count=30)
+        wandb.agent(sweep_id, function=sweep, count=10)
     else:
         # Instantiate PPO
         ppo = ProximalPolicyOptimization(
