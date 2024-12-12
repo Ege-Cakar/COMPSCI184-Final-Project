@@ -80,9 +80,9 @@ def main():
                 critic_policies=critic_policies,
                 step_max = 50,
                 T = T, 
-                batch_size = config.batch_size,
-                K = config.K,
-                lr = lr,
+                batch_size = batch_size,
+                K =K,
+                lr = config.lr,
                 device=device
             )
             return ppo.train()
