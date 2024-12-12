@@ -41,7 +41,7 @@ def main():
     K = 10 #number of minibatches to process
     lr = 5*0.0001
     hidden_size = 1024
-    step_max = 2 #number of training iterations, has to be over 10 in order to save outputs
+    step_max = 100 #number of training iterations, has to be over 10 in order to save outputs
     # Initialize policies and optimizers
     actor_policies = {}
     critic_policies = {}
