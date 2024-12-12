@@ -1,0 +1,183 @@
+Training iteration: 0
+On batch 0
+0's warrior at (13, 6) attacks 3's warrior at (12, 6).
+Target's health is now 65.
+0's warrior at (13, 6) attacks 3's warrior at (12, 6).
+Target's health is now 30.
+3's warrior at (13, 4) attacks 0's warrior at (13, 5).
+Target's health is now 65.
+0's warrior at (13, 5) attacks 3's warrior at (13, 4).
+Target's health is now 65.
+On batch 1
+0's warrior at (3, 7) attacks 3's warrior at (2, 7).
+Target's health is now 65.
+0's warrior at (3, 7) attacks 3's warrior at (2, 7).
+Target's health is now 30.
+3's warrior at (2, 5) attacks 0's warrior at (3, 5).
+Target's health is now 65.
+0's warrior at (3, 5) attacks 3's warrior at (2, 5).
+Target's health is now 65.
+0's warrior at (3, 6) attacks 3's City at (2, 6).
+Target's health is now 65.
+0's warrior at (3, 5) attacks 3's warrior at (2, 5).
+Target's health is now 30.
+0's warrior at (3, 5) attacks 3's warrior at (2, 5).
+Target's health is now -5.
+Target warrior at (2, 5) has been destroyed.
+0's warrior at (3, 6) attacks 3's City at (2, 6).
+Target's health is now 30.
+0's warrior at (3, 5) attacks 3's warrior at (2, 5).
+Target's health is now 65.
+0's warrior at (3, 6) attacks 3's City at (2, 6).
+Target's health is now -5.
+Target City at (2, 6) has been destroyed.
+0's warrior at (3, 7) attacks 3's warrior at (2, 7).
+Target's health is now -5.
+Target warrior at (2, 7) has been destroyed.
+3's warrior at (2, 5) attacks 0's warrior at (3, 5).
+Target's health is now 30.
+0's warrior at (3, 7) attacks 3's settler at (2, 7).
+Target's health is now 65.
+0's warrior at (4, 8) attacks 3's warrior at (3, 8).
+Target's health is now 65.
+0's warrior at (4, 8) attacks 3's warrior at (3, 8).
+Target's health is now 30.
+0's warrior at (4, 8) attacks 3's warrior at (3, 8).
+Target's health is now -5.
+Target warrior at (3, 8) has been destroyed.
+0's warrior at (3, 7) attacks 3's City at (2, 7).
+Target's health is now 65.
+0's warrior at (3, 7) attacks 3's City at (2, 7).
+Target's health is now 30.
+3's warrior at (2, 5) attacks 0's warrior at (3, 5).
+Target's health is now 65.
+0's warrior at (3, 8) attacks 3's City at (2, 8).
+Target's health is now 65.
+0's warrior at (3, 8) attacks 3's warrior at (3, 7).
+Target's health is now 65.
+0's warrior at (3, 8) attacks 3's warrior at (3, 7).
+Target's health is now 30.
+0's warrior at (3, 2) attacks 3's warrior at (2, 2).
+Target's health is now 65.
+0's warrior at (3, 2) attacks 3's warrior at (2, 2).
+Target's health is now 30.
+3's warrior at (3, 4) attacks 0's warrior at (3, 5).
+Target's health is now 30.
+3's warrior at (3, 4) attacks 0's warrior at (3, 5).
+Target's health is now -5.
+Target warrior at (3, 5) has been destroyed.
+3's warrior at (2, 5) attacks 0's settler at (3, 5).
+Target's health is now 65.
+3's warrior at (2, 5) attacks 0's settler at (3, 5).
+Target's health is now 30.
+3's warrior at (2, 5) attacks 0's settler at (3, 5).
+Target's health is now -5.
+Target settler at (3, 5) has been destroyed.
+3's warrior at (2, 5) attacks 0's warrior at (3, 5).
+Target's health is now 65.
+3's warrior at (2, 5) attacks 0's warrior at (3, 5).
+Target's health is now 30.
+3's warrior at (5, 3) attacks 0's warrior at (5, 2).
+Target's health is now 65.
+On batch 2
+1's warrior at (13, 5) attacks 2's City at (12, 5).
+Target's health is now 65.
+2's warrior at (12, 6) attacks 1's City at (13, 6).
+Target's health is now 65.
+2's warrior at (12, 6) attacks 1's City at (13, 6).
+Target's health is now 30.
+2's warrior at (12, 3) attacks 1's settler at (12, 2).
+Target's health is now 65.
+3's warrior at (10, 8) attacks 2's settler at (10, 7).
+Target's health is now 65.
+1's warrior at (13, 5) attacks 2's City at (12, 5).
+Target's health is now 30.
+1's warrior at (13, 5) attacks 2's City at (12, 5).
+Target's health is now -5.
+Target City at (12, 5) has been destroyed.
+2's warrior at (12, 3) attacks 1's settler at (12, 2).
+Target's health is now 30.
+1's warrior at (13, 5) attacks 2's warrior at (13, 4).
+Target's health is now 65.
+2's warrior at (13, 4) attacks 1's City at (13, 3).
+Target's health is now 65.
+1's warrior at (13, 7) attacks 2's warrior at (12, 7).
+Target's health is now 65.
+2's warrior at (11, 7) attacks 3's settler at (11, 8).
+Target's health is now 65.
+1's warrior at (13, 7) attacks 2's warrior at (12, 7).
+Target's health is now 30.
+1's warrior at (13, 7) attacks 2's warrior at (12, 7).
+Target's health is now -5.
+Target warrior at (12, 7) has been destroyed.
+1's warrior at (13, 7) attacks 2's settler at (12, 7).
+Target's health is now 65.
+2's warrior at (15, 1) attacks 1's City at (15, 2).
+Target's health is now 65.
+2's warrior at (12, 6) attacks 1's City at (13, 6).
+Target's health is now -5.
+Target City at (13, 6) has been destroyed.
+1's warrior at (13, 5) attacks 2's warrior at (13, 4).
+Target's health is now 30.
+2's warrior at (14, 1) attacks 1's City at (14, 2).
+Target's health is now 65.
+2's warrior at (15, 1) attacks 1's City at (15, 2).
+Target's health is now 30.
+2's warrior at (12, 3) attacks 1's City at (12, 2).
+Target's health is now 65.
+2's warrior at (12, 3) attacks 1's City at (13, 3).
+Target's health is now 30.
+2's warrior at (15, 1) attacks 1's warrior at (14, 1).
+Target's health is now 65.
+On batch 3
+0's warrior at (2, 6) attacks 1's settler at (3, 6).
+Target's health is now 65.
+1's warrior at (1, 8) attacks 0's warrior at (1, 7).
+Target's health is now 65.
+0's warrior at (2, 6) attacks 1's settler at (3, 6).
+Target's health is now 30.
+0's warrior at (2, 6) attacks 1's City at (2, 7).
+Target's health is now 65.
+0's warrior at (0, 9) attacks 1's warrior at (0, 8).
+Target's health is now 65.
+0's warrior at (0, 9) attacks 1's warrior at (0, 8).
+Target's health is now 30.
+0's warrior at (1, 9) attacks 1's City at (1, 8).
+Target's health is now 65.
+0's warrior at (1, 9) attacks 1's warrior at (2, 9).
+Target's health is now 65.
+0's warrior at (1, 9) attacks 1's warrior at (2, 9).
+Target's health is now 30.
+0's warrior at (1, 9) attacks 1's City at (1, 8).
+Target's health is now 30.
+0's warrior at (1, 9) attacks 1's City at (1, 8).
+Target's health is now -5.
+Target City at (1, 8) has been destroyed.
+0's warrior at (2, 6) attacks 1's City at (2, 7).
+Target's health is now 30.
+1's warrior at (2, 9) attacks 0's warrior at (1, 9).
+Target's health is now 65.
+0's warrior at (2, 6) attacks 1's City at (3, 6).
+Target's health is now 65.
+0's warrior at (2, 6) attacks 1's City at (2, 7).
+Target's health is now -5.
+Target City at (2, 7) has been destroyed.
+0's warrior at (2, 6) attacks 1's City at (3, 6).
+Target's health is now 30.
+0's warrior at (1, 9) attacks 1's warrior at (2, 9).
+Target's health is now -5.
+Target warrior at (2, 9) has been destroyed.
+0's warrior at (2, 6) attacks 1's City at (3, 6).
+Target's health is now -5.
+Target City at (3, 6) has been destroyed.
+1's warrior at (0, 8) attacks 0's settler at (0, 7).
+Target's health is now 65.
+0's warrior at (1, 9) attacks 1's City at (2, 9).
+Target's health is now 65.
+0's warrior at (1, 9) attacks 1's City at (2, 9).
+Target's health is now 30.
+On batch 4
+0's warrior at (6, 0) attacks 3's warrior at (7, 0).
+Target's health is now 65.
+0's warrior at (6, 0) attacks 3's warrior at (7, 0).
+Target's health is now 30.

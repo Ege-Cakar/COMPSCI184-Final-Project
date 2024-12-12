@@ -6,6 +6,7 @@ from civ import Civilization
 from pettingzoo.utils import wrappers
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
+import wandb
 
 # Import the PPO class and the Actor/Critic RNNs from your implementation
 from train import ProximalPolicyOptimization
@@ -23,6 +24,7 @@ def preprocess_observation(obs):
     obs_tensor = torch.cat([map_obs, units_obs, cities_obs, money_obs])
     return obs_tensor
 
+
 def main():
     # Initialize the environment
     map_size = (15, 30)
@@ -32,19 +34,14 @@ def main():
     env = wrappers.OrderEnforcingWrapper(env)
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
+
     # Define hyperparameters
-    hidden_size = 1024
-    lambdaa = 0.01
-    step_max = 100 #number of training iterations, has to be over 10 in order to save outputs
-    n_fit_trajectories = 100 #have to delete
-    n_sample_trajectories = 100 #have to delete
     T = 500 #number of steps in trajectory
-    num_epochs = 100
-    eval_interval=step_max 
-    eval_steps=T #number of steps to run civ game for
     batch_size = 5  # Define your batch size
     K = 10 #number of minibatches to process
-
+    lr = 0.001
+    hidden_size = 1024
+    step_max = 100 #number of training iterations, has to be over 10 in order to save outputs
     # Initialize policies and optimizers
     actor_policies = {}
     critic_policies = {}
@@ -71,24 +68,61 @@ def main():
         # Initialize actor and critic networks
         actor_policies[agent] = ActorRNN(input_size, hidden_size, action_size, env.max_cities, env.max_projects, device)
     critic_policies = CriticRNN(input_size_critic, hidden_size, device)
+    
+    sweep = False #TODO
+    #hyperparameter sweep
+    if sweep:
+        wandb.login()
+        def sweep_train(config):
+            ppo = ProximalPolicyOptimization(
+                env=env,
+                actor_policies=actor_policies,
+                critic_policies=critic_policies,
+                step_max = 5,
+                T = T, 
+                batch_size = config.batch_size,
+                K = config.K,
+                lr = config.lr,
+                device=device
+            )
+            return ppo.train()
+      
+        def sweep():
+            wandb.init(project="hyperparameter-sweep")
+            score = sweep_train(wandb.config)
+            print("FLAG")
+            print(score)
+            wandb.log({"score": score})
 
-    # Instantiate PPO
-    ppo = ProximalPolicyOptimization(
-        env=env,
-        actor_policies=actor_policies,
-        critic_policies=critic_policies,
-        lambdaa=lambdaa,
-        step_max=step_max,
-        n_fit_trajectories=n_fit_trajectories,
-        n_sample_trajectories=n_sample_trajectories,
-        T = T, 
-        batch_size = batch_size,
-        K = K,
-        device=device
-    )
 
-    # Train the policies
-    ppo.train(eval_interval, eval_steps)
+        sweep_configuration = {
+            "method": "random",
+            "metric": {"goal": "maximize", "name": "score"},
+            "parameters": {
+                "batch_size": {'min': 3, 'max': 20},
+                "K": {'min': 5, 'max': 20},
+                "lr": {'min': 0.0001, 'max': 0.1}
+            },
+        }
+        
+        sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep")
+        wandb.agent(sweep_id, function=sweep, count=10)
+    else:
+        # Instantiate PPO
+        ppo = ProximalPolicyOptimization(
+            env=env,
+            actor_policies=actor_policies,
+            critic_policies=critic_policies,
+            step_max=step_max,
+            T = T, 
+            batch_size = batch_size,
+            K = K,
+            lr = lr,
+            device=device
+        )
+        # Train the policies
+        ppo.train()
+
 
 if __name__ == "__main__":
     main()

@@ -192,7 +192,7 @@ class Civilization(AECEnv):
         delta_GDP = current_state['gdp'] - previous_state['gdp']
         delta_Energy = current_state['energy_output'] - previous_state['energy_output']
         C_resources = self.resources_gained[agent]
-        E_impact = current_state['environmental_impact'] # TODO: Evaluate making this change in env impact? 
+        E_impact = current_state['environmental_impact'] - previous_state['environmental_impact'] # TODO: Evaluate making this change in env impact? 
         # Reset temporary tracking variables
         Stalling =0.0
         if self._states_are_equal(previous_state, current_state): #Make stalling part of reward function

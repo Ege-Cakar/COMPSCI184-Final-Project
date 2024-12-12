@@ -1,3 +1,4 @@
+import wandb
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -30,15 +31,15 @@ from civ import Civilization
 State = TypeVar("State")  # Represents the state type
 Action = TypeVar("Action")  # Represents the action type
 
-
 class ProximalPolicyOptimization:
-    def __init__(self, env, actor_policies, critic_policies, step_max, T, batch_size, K, lr, device):
+    def __init__(self, env, actor_policies, critic_policies, lambdaa, step_max, T, batch_size, K, device):
         """
         Initialize PPO with environment and hyperparameters.
 
         Args:
             env: The environment for training.
             pi: Policy function that maps parameters to a function defining action probabilities.
+            lambdaa: Regularization coefficient.
             theta_init: Initial policy parameters.
             step_max: Number of training iterations.
             T: Number of iterations to run trajectory for
@@ -49,11 +50,11 @@ class ProximalPolicyOptimization:
             agent: policy.to(self.device) for agent, policy in actor_policies.items()
         }
         self.critic_policies = critic_policies.to(self.device)
+        self.lambdaa = lambdaa
         self.step_max = step_max
         self.T = T
         self.batch_size = batch_size
         self.K = K
-        self.lr = lr
 
 
     def train(self):
@@ -71,14 +72,14 @@ class ProximalPolicyOptimization:
         Returns:
             Trained policy parameters, theta.
         """
-
+        
         #each agent in the environment is assigned a separate optimizer for both their actor policy and critic policy networks.
         actor_optimizers = {
-            agent: torch.optim.Adam(policy.parameters(), lr=self.lr)
+            agent: torch.optim.Adam(policy.parameters(), lr=1e-3)
             for agent, policy in self.actor_policies.items()
         }
 
-        critic_optimizers = torch.optim.Adam(self.critic_policies.parameters(), lr=self.lr)
+        critic_optimizers = torch.optim.Adam(self.critic_policies.parameters(), lr=1e-3)
 
         
         keys = [
@@ -192,7 +193,6 @@ class ProximalPolicyOptimization:
             with open("outputs/hyperparams.txt", "w") as file:
                 file.write(data)
             return None
-        return cumulative_rewards[0, self.step_max-1]       #TODO: change this to aggregate over agents
     
     def generate_all_trajectories(self, cumulative_rewards,reward_components, step):
         trajectories = self.initialize_starting_trajectories(self.env, self.actor_policies)
@@ -458,9 +458,7 @@ class ProximalPolicyOptimization:
         # Flatten both returns and values
         flat_values = across_agent_values.view(-1).to(self.device)
         flat_returns = returns.view(-1).to(self.device)
-        print("FLAG")
-        print(flat_values.shape)
-        print(flat_returns.shape)
+
         # Compute unclipped and clipped value losses
         value_loss_unclipped = (flat_values - flat_returns) ** 2
         clipped_values = torch.clamp(flat_values, min=(flat_returns - epsilon), max=(flat_returns + epsilon))
@@ -829,3 +827,41 @@ class ProximalPolicyOptimization:
 
         return returns
     
+
+
+#hyperparameter sweep:
+wandb.init(project="hyperparameter-sweep-continuous")
+sweep_config = {
+'method': 'random',
+'metric': {'name': 'accuracy', 'goal': 'maximize'},
+'parameters': {
+    'learning_rate': {
+        'min': 0.0001,
+        'max': 0.1,
+        'distribution': 'uniform'
+    },
+    'batch_size': {
+        'min': 16,
+        'max': 128,
+        'distribution': 'int_uniform'
+    },
+    'dropout_rate': {
+        'min': 0.1,
+        'max': 0.5,
+        'distribution': 'uniform'
+    },
+    'num_hidden_layers': {
+        'min': 1,
+        'max': 4,
+        'distribution': 'int_uniform'
+    },
+    'neurons_per_layer': {
+        'min': 32,
+        'max': 256,
+        'distribution': 'int_uniform'
+    }
+    }
+}
+
+sweep_id = wandb.sweep(sweep_config)    
+wandb.agent(sweep_id, function=ppo.train)
