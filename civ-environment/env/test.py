@@ -78,7 +78,7 @@ def main():
                 env=env,
                 actor_policies=actor_policies,
                 critic_policies=critic_policies,
-                step_max = 5,
+                step_max = 2,
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
@@ -99,9 +99,9 @@ def main():
             "method": "random",
             "metric": {"goal": "maximize", "name": "score"},
             "parameters": {
-                "batch_size": {'min': 3, 'max': 20},
-                "K": {'min': 5, 'max': 20},
-                "lr": {'min': 0.0001, 'max': 0.1}
+                "batch_size": {"values": [5, 10, 15, 20, 25]},
+                "K": {"values": [5, 10, 15, 20]},
+                "lr": {"values": [0.001, 0.005, 0.01, 0.05, 0.1]}
             },
         }
         

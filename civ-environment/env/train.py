@@ -174,7 +174,7 @@ class ProximalPolicyOptimization:
 
         plt.figure(figsize=(10, 6))
         for agent in range(len(self.env.agents)):
-            plt.plot(range(self.step_max), cumulative_rewards[agent, :], label=f"Agent {agent }")
+            plt.plot(range(self.step_max), cumulative_rewards.cpu().detach().numpy()[agent, :], label=f"Agent {agent }")
         plt.xlabel("Training Iterations")
         plt.ylabel("Cumulative Reward")
         plt.title("Cumulative Reward Over Training Iterations")
@@ -458,9 +458,7 @@ class ProximalPolicyOptimization:
         # Flatten both returns and values
         flat_values = across_agent_values.view(-1).to(self.device)
         flat_returns = returns.view(-1).to(self.device)
-        print("FLAG")
-        print(flat_values.shape)
-        print(flat_returns.shape)
+
         # Compute unclipped and clipped value losses
         value_loss_unclipped = (flat_values - flat_returns) ** 2
         clipped_values = torch.clamp(flat_values, min=(flat_returns - epsilon), max=(flat_returns + epsilon))
