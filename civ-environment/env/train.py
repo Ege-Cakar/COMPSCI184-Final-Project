@@ -578,7 +578,7 @@ class ProximalPolicyOptimization:
 
                 # Step the environment with the chosen action
                 self.env.step(chosen_action)
-                self.env.render()
+                #self.env.render()          #TODO: add this back for actual running
 
                 # Increment step counter when all agents have acted
                 if agent == self.env.agents[-1]:
