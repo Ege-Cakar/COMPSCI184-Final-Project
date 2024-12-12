@@ -106,7 +106,7 @@ def main():
         }
         
         sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep")
-        wandb.agent(sweep_id, function=sweep, count=10)
+        wandb.agent(sweep_id, function=sweep, count=2)
     else:
         # Instantiate PPO
         ppo = ProximalPolicyOptimization(
