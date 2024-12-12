@@ -37,9 +37,9 @@ def main():
 
     # Define hyperparameters
     T = 500 #number of steps in trajectory
-    batch_size = 10  # Define your batch size-- changed from 5
+    batch_size = 30  # Define your batch size-- changed from 5
     K = 10 #number of minibatches to process
-    lr = 0.001
+    lr = 5*0.0001
     hidden_size = 1024
     step_max = 100 #number of training iterations, has to be over 10 in order to save outputs
     # Initialize policies and optimizers
@@ -80,9 +80,9 @@ def main():
                 critic_policies=critic_policies,
                 step_max = 50,
                 T = T, 
-                batch_size = batch_size,
-                K =K,
-                lr = config.lr,
+                batch_size = config.batch_size,
+                K = config.K,
+                lr = lr,
                 device=device
             )
             return ppo.train()
@@ -99,9 +99,8 @@ def main():
             "method": "bayes",
             "metric": {"goal": "maximize", "name": "score"},
             "parameters": {
-                #"batch_size": {"values": [5, 10, 15, 20, 25, 30]},
-                #"K": {"values": [5, 10, 15, 20, 25, 30]},
-                "lr": {"distribution": "log_uniform", "min": -9.2, "max": -2.3}
+                "batch_size": {"values": [20, 25, 30, 35, 40]},
+                "K": {"values": [10, 15, 20, 25, 30]},
                 #"batch_size": {"min": 5, "max": 30},
                 #"K": {"min": 5, "max": 30},
                 #"lr": {"min": 0.00005, "max": 0.05}
