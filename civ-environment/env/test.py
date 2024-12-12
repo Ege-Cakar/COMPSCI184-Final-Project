@@ -78,7 +78,7 @@ def main():
                 env=env,
                 actor_policies=actor_policies,
                 critic_policies=critic_policies,
-                step_max = 30,
+                step_max = 2,
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
