@@ -556,16 +556,16 @@ class Civilization(AECEnv):
             target_agent, target = self._check_enemy_units_and_cities(self.x, self.y, direction, self.owner, self.env)
 
             if target is not None:
-                print(f"{self.owner}'s warrior at ({self.x}, {self.y}) attacks {target_agent}'s {target.type} at ({target.x}, {target.y}).")
+                #print(f"{self.owner}'s warrior at ({self.x}, {self.y}) attacks {target_agent}'s {target.type} at ({target.x}, {target.y}).")
                 # Inflict damage
                 target.health -= 35
-                print(f"Target's health is now {target.health}.")
+                #print(f"Target's health is now {target.health}.")
                 self.env.last_attacker = self.owner
                 self.env.last_target_destroyed = False
 
                 # Check if the target is destroyed
                 if target.health <= 0:
-                    print(f"Target {target.type} at ({target.x}, {target.y}) has been destroyed.")
+                    #print(f"Target {target.type} at ({target.x}, {target.y}) has been destroyed.")
                     self.env.last_target_destroyed = True
                     self.env._remove_unit_or_city(target)
                     # Update tracking variables

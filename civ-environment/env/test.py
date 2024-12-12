@@ -35,7 +35,6 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "mps")
     print(f"Using device: {device}")
 
-
     # Define hyperparameters
     T = 500 #number of steps in trajectory
     batch_size = 5  # Define your batch size
