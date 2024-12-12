@@ -82,7 +82,7 @@ def main():
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
-                lr = config.lr,
+                lr = lr,
                 device=device
             )
             return ppo.train()
@@ -101,7 +101,7 @@ def main():
             "parameters": {
                 "batch_size": {"values": [5, 10, 15, 20, 25, 30]},
                 "K": {"values": [5, 10, 15, 20, 25, 30]},
-                "lr": {"distribution": "log_uniform", "min": -4, "max": -1}
+                #"lr": {"distribution": "log_uniform", "min": -9.2, "max": -2.3}
                 #"batch_size": {"min": 5, "max": 30},
                 #"K": {"min": 5, "max": 30},
                 #"lr": {"min": 0.00005, "max": 0.05}
@@ -111,7 +111,7 @@ def main():
         }
         
         sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep-final")
-        wandb.agent(sweep_id, function=sweep, count=40)
+        wandb.agent(sweep_id, function=sweep, count=30)
     else:
         # Instantiate PPO
         ppo = ProximalPolicyOptimization(
