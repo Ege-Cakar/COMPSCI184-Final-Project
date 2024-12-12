@@ -69,7 +69,7 @@ def main():
         actor_policies[agent] = ActorRNN(input_size, hidden_size, action_size, env.max_cities, env.max_projects, device)
     critic_policies = CriticRNN(input_size_critic, hidden_size, device)
     
-    sweep = False #TODO
+    sweep = True #TODO
     #hyperparameter sweep
     if sweep:
         wandb.login()
