@@ -557,7 +557,7 @@ class ProximalPolicyOptimization:
 
             # Loop over agent interactions in the environment
             for agent in self.env.agent_iter():
-                print(f"Step {step_counter}, Agent {agent}")
+                #print(f"Step {step_counter}, Agent {agent}")
                 sys.stdout.flush()
 
                 # Observe and process the observation

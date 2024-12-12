@@ -88,7 +88,7 @@ def main():
             return ppo.train()
       
         def sweep():
-            wandb.init(project="hyperparameter-sweep")
+            wandb.init(group="hyperparameter-sweep")
             score = sweep_train(wandb.config)
             print("FLAG")
             print(score)
