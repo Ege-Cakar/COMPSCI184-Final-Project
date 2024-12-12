@@ -78,7 +78,7 @@ def main():
                 env=env,
                 actor_policies=actor_policies,
                 critic_policies=critic_policies,
-                step_max = 1,
+                step_max = 40,
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
@@ -88,7 +88,7 @@ def main():
             return ppo.train()
       
         def sweep():
-            wandb.init(project="hyperparameter-sweep", group="hyperparameter-sweep")
+            wandb.init(project="hyperparameter-sweep-final", group="hyperparameter-sweep-group")
             score = sweep_train(wandb.config)
             print("FLAG")
             print(score)
@@ -107,8 +107,8 @@ def main():
             "name": "my_sweep" 
         }
         
-        sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep")
-        wandb.agent(sweep_id, function=sweep, count=2)
+        sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep-final")
+        wandb.agent(sweep_id, function=sweep, count=40)
     else:
         # Instantiate PPO
         ppo = ProximalPolicyOptimization(
