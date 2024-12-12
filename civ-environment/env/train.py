@@ -168,7 +168,7 @@ class ProximalPolicyOptimization:
                 ax.grid()   
                 ax.legend()
         plt.tight_layout
-        if self.step_max >=10:
+        if self.step_max >=2:   #TODO: CHANGE THIS
             plt.savefig("/content/drive/My Drive/cumulative_reward_component.png")  # Save as PNG
         plt.show()
 
@@ -180,12 +180,12 @@ class ProximalPolicyOptimization:
         plt.title("Cumulative Reward Over Training Iterations")
         plt.legend()
         plt.grid()
-        if self.step_max >=10:
+        if self.step_max >=2:  #TODO: CHANGE THIS
             plt.savefig("/content/drive/My Drive/cumulative_reward.png")  # Save as PNG
         plt.show()
 
         # Data to save
-        if self.step_max >=10:
+        if self.step_max >=2:       #TODO: CHANGE THIS
             data = f"Hyperparameters:\n Ran for {self.step_max} iterations \n Each iteration runs {self.batch_size} trajectories \n Each trajectory contains {self.T} time steps"
 
             # Save to a text file
