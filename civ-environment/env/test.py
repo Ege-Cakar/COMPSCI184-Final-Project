@@ -101,7 +101,7 @@ def main():
             "parameters": {
                 "batch_size": {"values": [5, 10, 15, 20, 25, 30]},
                 "K": {"values": [5, 10, 15, 20, 25, 30]},
-                "lr": {"distribution": "log_uniform", "min": 0.0001, "max": 0.1}
+                "lr": {"distribution": "log_uniform", "min": -4, "max": -1}
                 #"batch_size": {"min": 5, "max": 30},
                 #"K": {"min": 5, "max": 30},
                 #"lr": {"min": 0.00005, "max": 0.05}
