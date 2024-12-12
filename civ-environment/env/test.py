@@ -78,7 +78,7 @@ def main():
                 env=env,
                 actor_policies=actor_policies,
                 critic_policies=critic_policies,
-                step_max = 2,
+                step_max = 1,
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
@@ -103,6 +103,8 @@ def main():
                 "K": {"values": [5, 10, 15, 20]},
                 "lr": {"values": [0.001, 0.005, 0.01, 0.05, 0.1]}
             },
+            "project": "hyperparameter-sweep",  # Project name in WandB
+            "name": "my_sweep" 
         }
         
         sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep")
