@@ -69,7 +69,7 @@ def main():
         actor_policies[agent] = ActorRNN(input_size, hidden_size, action_size, env.max_cities, env.max_projects, device)
     critic_policies = CriticRNN(input_size_critic, hidden_size, device)
     
-    sweep = True #TODO
+    sweep = False #TODO
     #hyperparameter sweep
     if sweep:
         wandb.login()
@@ -78,7 +78,7 @@ def main():
                 env=env,
                 actor_policies=actor_policies,
                 critic_policies=critic_policies,
-                step_max = 50,
+                step_max = 5,
                 T = T, 
                 batch_size = config.batch_size,
                 K = config.K,
@@ -110,7 +110,7 @@ def main():
         }
         
         sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyperparameter-sweep-final")
-        wandb.agent(sweep_id, function=sweep, count=10)
+        wandb.agent(sweep_id, function=sweep, count=30)
     else:
         # Instantiate PPO
         ppo = ProximalPolicyOptimization(
