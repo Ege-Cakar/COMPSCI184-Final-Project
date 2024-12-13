@@ -169,7 +169,7 @@ class ProximalPolicyOptimization:
                 ax.legend()
         plt.tight_layout
         if self.step_max >=10:   
-            plt.savefig("/content/drive/My Drive/cumulative_reward_component.png")  # Save as PNG
+            plt.savefig("outputs/cumulative_reward_component.png")  # Save as PNG
         plt.show()
 
         plt.figure(figsize=(10, 6))
@@ -181,7 +181,7 @@ class ProximalPolicyOptimization:
         plt.legend()
         plt.grid()
         if self.step_max >=10:
-            plt.savefig("/content/drive/My Drive/cumulative_reward.png")  # Save as PNG
+            plt.savefig("outputs/cumulative_reward.png")  # Save as PNG
         plt.show()
 
         # Data to save
@@ -609,7 +609,7 @@ class ProximalPolicyOptimization:
                 ax.legend()
             plt.tight_layout()
             if self.step_max >=10:
-                plt.savefig("/content/drive/My Drive/actions_eval.png") 
+                plt.savefig("outputs/actions_eval.png") 
             plt.show()
             print("Evaluation complete.")
 
