@@ -114,7 +114,7 @@ class Civilization(AECEnv):
         self.k8 = 50.0 # Change in GDP
         self.k9 = 50.0  # Change in Energy output
         self.k10 = 35.0 # Resources gained
-        self.gamma = 0.0001  # Environmental impact penalty
+        self.gamma = 0.00001  # Environmental impact penalty
         self.beta = 0.5
 
         # New parameter for entropy scaling
