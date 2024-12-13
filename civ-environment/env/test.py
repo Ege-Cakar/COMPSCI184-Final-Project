@@ -39,7 +39,7 @@ def main():
     T = 500 #number of steps in trajectory
     batch_size = 20  # Define your batch size-- changed from 5
     K = 10 #number of minibatches to process
-    lr = 5*0.0001
+    lr = 5*0.001 #learning rate
     hidden_size = 1024
     step_max = 100 #number of training iterations, has to be over 10 in order to save outputs
     # Initialize policies and optimizers
